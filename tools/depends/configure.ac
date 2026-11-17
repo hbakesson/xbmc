@@ -555,7 +555,14 @@ case $host in
 
         case $platform_os in
           darwin_embedded)
-            target_minver="12.0"
+            case $use_platform in
+              tvos|tvos-simulator)
+                target_minver="13.0"
+              ;;
+              *)
+                target_minver="12.0"
+              ;;
+            esac
           ;;
           osx)
             target_minver="11.0"

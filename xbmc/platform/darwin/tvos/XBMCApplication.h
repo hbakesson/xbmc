@@ -8,6 +8,12 @@
 
 #import <UIKit/UIKit.h>
 
+@class XBMCController;
+
 @interface XBMCApplicationDelegate : UIResponder <UIApplicationDelegate>
+@end
+
+@interface XBMCSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property(nullable, nonatomic, strong) UIWindow* window;
+@property(nullable, nonatomic, readonly) XBMCController* xbmcController;
 @end

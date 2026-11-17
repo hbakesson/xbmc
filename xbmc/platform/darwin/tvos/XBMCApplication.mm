@@ -17,52 +17,11 @@
 
 @implementation XBMCApplicationDelegate
 
-- (XBMCController*)xbmcController
-{
-  return static_cast<XBMCController*>(self.window.rootViewController);
-}
-
-#pragma mark - Shutdown Procedures
-
-- (void)applicationWillResignActive:(UIApplication*)application
-{
-  // Occurs when Kodi is interrupted by something
-  // (e.g. Siri triggered by user, Control center opened by user, Mutlitask opened by user ...)
-}
-
-- (void)applicationDidEnterBackground:(UIApplication*)application
-{
-  // Occurs when Kodi has been backgrounded
-  // (e.g. when user uses remote to go to tvOS homescreen)
-  // applicationWillResignActive() will always be called before this method
-  if (application.applicationState == UIApplicationStateBackground)
-  {
-    // the app is turn into background, not in by screen lock which has app state inactive.
-    [self.xbmcController pauseAnimation];
-    [self.xbmcController enterBackground];
-  }
-}
-
 - (void)applicationWillTerminate:(UIApplication*)application
 {
-  [self.xbmcController stopAnimation];
-}
-
-#pragma mark - Startup Procedures
-
-- (void)applicationDidBecomeActive:(UIApplication*)application
-{
-  // This function occurs:
-  //  * on the first start of Kodi
-  //  * when Kodi has been activated after being suspended by applicationWillResignActive()
-  //  * when Kodi has been foregrounded after applicationDidEnterBackground()
-}
-
-- (void)applicationWillEnterForeground:(UIApplication*)application
-{
-  // Occurs only after an applicationDidEnterBackground()
-  [self.xbmcController resumeAnimation];
-  [self.xbmcController enterForeground];
+  auto sceneDelegate =
+      static_cast<XBMCSceneDelegate*>(application.connectedScenes.anyObject.delegate);
+  [sceneDelegate.xbmcController stopAnimation];
 }
 
 - (BOOL)application:(UIApplication*)application
@@ -76,12 +35,6 @@
   // as they will directly cause guisetting to get accessed/created
   // via debug log settings.
   CPreflightHandler::MigrateUserdataXMLToNSUserDefaults();
-
-  // UI setup
-  self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
-  self.window.rootViewController = [XBMCController new];
-  [self.window makeKeyAndVisible];
-  [self.xbmcController startAnimation];
 
   // audio session setup
   auto audioSession = AVAudioSession.sharedInstance;
@@ -99,16 +52,85 @@
 
   return YES;
 }
+@end
 
-- (BOOL)application:(UIApplication*)app
-            openURL:(NSURL*)url
-            options:(NSDictionary<NSString*, id>*)options
+@implementation XBMCSceneDelegate
 {
-  NSArray* urlComponents = [url.absoluteString componentsSeparatedByString:@"/"];
-  NSString* action = urlComponents[2];
-  if ([action isEqualToString:@"display"] || [action isEqualToString:@"play"])
-    CTVOSTopShelf::GetInstance().HandleTopShelfUrl(url.absoluteString.UTF8String, true);
-  return YES;
+  BOOL m_didEnterBackground;
+}
+
+- (XBMCController*)xbmcController
+{
+  return static_cast<XBMCController*>(self.window.rootViewController);
+}
+
+#pragma mark - Shutdown Procedures
+
+- (void)sceneWillResignActive:(UIScene*)scene
+{
+  // Occurs when Kodi is interrupted by something
+  // (e.g. Siri triggered by user, Control center opened by user, Mutlitask opened by user ...)
+}
+
+- (void)sceneDidEnterBackground:(UIScene*)scene
+{
+  // Occurs when Kodi has been backgrounded
+  // (e.g. when user uses remote to go to tvOS homescreen)
+  // sceneWillResignActive() will always be called before this method
+  m_didEnterBackground = YES;
+  if (scene.activationState == UISceneActivationStateBackground)
+  {
+    // the app is turn into background, not in by screen lock which has app state inactive.
+    [self.xbmcController pauseAnimation];
+    [self.xbmcController enterBackground];
+  }
+}
+
+#pragma mark - Startup Procedures
+
+- (void)sceneDidBecomeActive:(UIScene*)scene
+{
+  // This function occurs:
+  //  * on the first start of Kodi
+  //  * when Kodi has been activated after being suspended by sceneWillResignActive()
+  //  * when Kodi has been foregrounded after sceneDidEnterBackground()
+}
+
+- (void)sceneWillEnterForeground:(UIScene*)scene
+{
+  // Occurs after a sceneDidEnterBackground(), but also on first start
+  // before Kodi is running
+  if (!m_didEnterBackground)
+    return;
+  m_didEnterBackground = NO;
+
+  [self.xbmcController resumeAnimation];
+  [self.xbmcController enterForeground];
+}
+
+- (void)scene:(UIScene*)scene
+    willConnectToSession:(UISceneSession*)session
+                 options:(UISceneConnectionOptions*)connectionOptions
+{
+  // UI setup
+  self.window = [[UIWindow alloc] initWithWindowScene:static_cast<UIWindowScene*>(scene)];
+  self.window.rootViewController = [XBMCController new];
+  [self.window makeKeyAndVisible];
+  [self.xbmcController startAnimation];
+
+  [self scene:scene openURLContexts:connectionOptions.URLContexts];
+}
+
+- (void)scene:(UIScene*)scene openURLContexts:(NSSet<UIOpenURLContext*>*)URLContexts
+{
+  for (UIOpenURLContext* context in URLContexts)
+  {
+    NSURL* url = context.URL;
+    NSArray* urlComponents = [url.absoluteString componentsSeparatedByString:@"/"];
+    NSString* action = urlComponents[2];
+    if ([action isEqualToString:@"display"] || [action isEqualToString:@"play"])
+      CTVOSTopShelf::GetInstance().HandleTopShelfUrl(url.absoluteString.UTF8String, true);
+  }
 }
 @end
 
