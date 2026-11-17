@@ -45,7 +45,6 @@
   <addon>script.module.pil</addon>
   <addon>script.module.pycryptodome</addon>
   <addon>skin.estuary</addon>
-  <addon>webinterface.default</addon>
   <addon>xbmc.addon</addon>
   <addon>xbmc.core</addon>
   <addon>xbmc.gui</addon>
@@ -56,5 +55,4 @@
   <addon optional="true">game.shader.presets</addon>
   <addon optional="true">inputstream.adaptive</addon>
   <addon optional="true">peripheral.joystick</addon>
-  <addon optional="true">service.xbmc.versioncheck</addon>
 </addons>
